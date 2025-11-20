@@ -1,0 +1,45 @@
+19th November, 2025:
+
+Sourashis Ghosh Roy – My Learning Summary
+
+My part of the learning focused more on the database and data-management process
+    1. Firebase Realtime Database Structure:
+    I learned that the Firebase Realtime Database is essentially a big JSON tree.
+    To store user profiles properly, I had to understand:
+        how to structure paths like users/<uid>
+        how .child() and .set() work
+        that Firebase stores everything as JSON-like documents
+    This helped me store name, age, phone, and PAN info during registration.
+
+    2. Writing Additional User Data:
+    I learned that registering a user in Firebase Auth does not automatically store profile details.
+    So I needed to:
+        generate my own profile object
+        push it manually to the database
+        link it to the user’s uid
+    Understanding the separation between Auth and Database was important.
+
+    3. Handling Sensitive Fields:
+    Because PAN, phone numbers, and personal details were involved, I learned how to structure and store them safely.
+    I also learned:
+        to avoid printing sensitive data in logs
+        to keep API keys out of source control
+        to never store credentials in plain text beyond what Firebase requires
+    This made me more aware of basic application security.
+
+    4. Error Handling & Debugging:
+    I learned to handle errors coming from Firebase, such as:
+        invalid passwords
+        email already used
+        weak passwords
+        malformed requests
+    Understanding these allowed me to display clear messages instead of confusing Pyrebase stack traces.
+
+    5. Designing a Clean Workflow:
+    I learned how to structure a clean registration flow:
+        collect user inputs
+        create the Firebase account
+        retrieve the user’s uid
+        push the extra data to the database
+        confirm that everything succeeded
+    This ensured the registration process stayed reliable and easy to follow.
