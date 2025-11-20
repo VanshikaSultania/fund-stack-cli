@@ -1,6 +1,6 @@
 19th November, 2025:
 
-Sourashis Ghosh Roy – My Learning Summary
+Sourashis Ghosh Roy – Learning Summary
 
 My part of the learning focused more on the database and data-management process
     1. Firebase Realtime Database Structure:
@@ -43,3 +43,46 @@ My part of the learning focused more on the database and data-management process
         push the extra data to the database
         confirm that everything succeeded
     This ensured the registration process stayed reliable and easy to follow.
+
+Vanshika Sultania - Learning Summary
+
+Before starting this project, I had to understand a set of core concepts to make sure I could properly build the authentication and data-handling parts of the system.
+    1. Python Project Structure & Modules:
+    I learned how to split a Python project into multiple files, such as:
+        modules for authentication
+        modules for Firebase configuration
+        a CLI controller
+        the main entry point
+        I needed to understand how Python imports work and how functions interact across files.
+
+    2. Working With CLI Input
+    I learned how to:
+        collect user input using input()
+        create menus using loops
+        validate user-entered data
+        display meaningful messages
+    This was important because the whole system runs in the terminal without a graphical interface.
+
+    3. Firebase Authentication Basics
+    I studied Firebase Auth well enough to understand:
+        how user registration works
+        how login tokens are returned
+        what the localId (UID) means
+        what errors Firebase returns if something goes wrong
+    This helped me map each login and register event to the corresponding Firebase actions.
+
+    4. Pyrebase Library
+    I learned how Pyrebase acts as a wrapper around Firebase’s REST API.
+    I had to understand:
+        how to initialize Firebase using a config dictionary
+        how auth.sign_in_with_email_and_password() works
+        how Pyrebase returns dictionaries containing tokens and user IDs
+    This knowledge was essential for both authentication and database operations.
+
+    5. Secure Handling of User Session Data
+    I learned that Firebase returns an ID token, but Pyrebase can simplify validation for me.
+    I also learned:
+        how to store session data in a local .json file
+        how to read it to see if a user is already logged in
+        how to clear that session when logging out
+    This helped replicate a basic login persistence experience.
