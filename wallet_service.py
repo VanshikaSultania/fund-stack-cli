@@ -153,3 +153,63 @@ def withdraw(uid: str, wallet_id: str, amount: float, note: str = "") -> bool:
     }
     _add_wallet_transaction(uid, wallet_id, tx)
     return True
+
+def transfer(uid: str, from_wallet_id: str, to_wallet_id: str, amount: float, note: str = "") -> bool:
+    """
+    Transfer amount from one wallet to another for the same user.
+    Both wallets can have different currencies — this function will NOT convert currencies.
+    It will only transfer if both wallets exist and source has sufficient funds.
+    The transfer will:
+      - withdraw from source (and create a withdrawal tx with note)
+      - deposit to destination (and create a deposit tx with note)
+    Returns True on success, False otherwise.
+    """
+    if amount <= 0:
+        return False
+
+    src = get_wallet(uid, from_wallet_id)
+    dst = get_wallet(uid, to_wallet_id)
+    if not src or not dst:
+        return False
+
+    # ensure source has enough funds
+    src_balance = float(src.get("balance", 0.0))
+    if amount > src_balance:
+        return False
+
+    # perform source update
+    new_src_balance = src_balance - float(amount)
+    ok1 = _write_wallet_balance(uid, from_wallet_id, new_src_balance)
+
+    # perform destination update
+    dst_balance = float(dst.get("balance", 0.0))
+    new_dst_balance = dst_balance + float(amount)
+    ok2 = _write_wallet_balance(uid, to_wallet_id, new_dst_balance)
+
+    if not (ok1 and ok2):
+        # attempted partial update — in robust systems we'd roll back or use transactions
+        return False
+
+    # log transactions on both wallets
+    ts = int(time.time())
+    tx_src = {
+        "type": "transfer_out",
+        "amount": float(amount),
+        "currency": src.get("currency"),
+        "note": note,
+        "to_wallet": to_wallet_id,
+        "timestamp": ts,
+        "balance_after": new_src_balance
+    }
+    tx_dst = {
+        "type": "transfer_in",
+        "amount": float(amount),
+        "currency": dst.get("currency"),
+        "note": note,
+        "from_wallet": from_wallet_id,
+        "timestamp": ts,
+        "balance_after": new_dst_balance
+    }
+    _add_wallet_transaction(uid, from_wallet_id, tx_src)
+    _add_wallet_transaction(uid, to_wallet_id, tx_dst)
+    return True
