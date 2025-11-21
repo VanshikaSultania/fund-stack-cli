@@ -75,3 +75,9 @@ def get_wallet(uid: str, wallet_id: str) -> Optional[Dict]:
     if r.status_code != 200:
         return None
     return r.json()
+
+def _write_wallet_balance(uid: str, wallet_id: str, new_balance: float) -> bool:
+    # patch only the balance field
+    path = f"{_wallet_base_path(uid)}/{wallet_id}.json{_auth_query()}"
+    r = requests.patch(path, json={"balance": new_balance})
+    return r.status_code in (200, 204)
