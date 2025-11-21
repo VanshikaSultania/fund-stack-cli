@@ -31,3 +31,8 @@ def _auth_query() -> str:
         return ""
     token = session.get("idToken")
     return f"?auth={token}" if token else ""
+
+def _wallet_base_path(uid: str) -> str:
+    # ensure DATABASE_URL has no trailing slash
+    base = DATABASE_URL.rstrip("/")
+    return f"{base}/users/{uid}/wallets"
