@@ -9,11 +9,9 @@ from firebase_config import (
 
 SESSION_FILE = "session.json"
 
-
 def save_session(data):
     with open(SESSION_FILE, "w") as f:
         json.dump(data, f)
-
 
 def get_session():
     if not os.path.exists(SESSION_FILE):
@@ -21,15 +19,10 @@ def get_session():
     with open(SESSION_FILE, "r") as f:
         return json.load(f)
 
-
 def clear_session():
     if os.path.exists(SESSION_FILE):
         os.remove(SESSION_FILE)
 
-
-# ------------------------------
-# CREATE USER (REGISTER)
-# ------------------------------
 def register_user(email, password, name, age, phone, pan):
 
     payload = {
@@ -45,7 +38,6 @@ def register_user(email, password, name, age, phone, pan):
         print("❌ Registration failed:", data["error"]["message"])
         return None
 
-    # Save profile data in Firebase DB
     uid = data["localId"]
 
     profile = {
@@ -61,10 +53,6 @@ def register_user(email, password, name, age, phone, pan):
     print("✔ User registered and profile saved.")
     return data
 
-
-# ------------------------------
-# LOGIN USER
-# ------------------------------
 def login_user(email, password):
     payload = {
         "email": email,
@@ -83,10 +71,6 @@ def login_user(email, password):
     print("✔ Logged in successfully.")
     return data
 
-
-# ------------------------------
-# LOGOUT
-# ------------------------------
 def logout_user():
     clear_session()
     print("✔ Logged out successfully.")
