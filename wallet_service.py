@@ -56,3 +56,15 @@ def create_wallet(uid: str, name: str, currency: str, initial_balance: float = 0
         return wallet_id
     # optionally return r.text for debugging
     return None
+
+def list_wallets(uid: str) -> List[Dict]:
+    """
+    Return a list of wallet dicts for the user. If none or error returns [].
+    """
+    path = f"{_wallet_base_path(uid)}.json{_auth_query()}"
+    r = requests.get(path)
+    if r.status_code != 200:
+        return []
+    data = r.json() or {}
+    # data is mapping wallet_id -> wallet dict
+    return list(data.values())
