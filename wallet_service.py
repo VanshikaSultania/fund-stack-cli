@@ -94,3 +94,30 @@ def _add_wallet_transaction(uid: str, wallet_id: str, tx: Dict) -> Optional[str]
     if r.status_code in (200, 204):
         return txid
     return None
+
+def deposit(uid: str, wallet_id: str, amount: float, note: str = "") -> bool:
+    """
+    Adds amount to wallet balance and creates a transaction of type 'deposit'.
+    """
+    if amount <= 0:
+        return False
+
+    wallet = get_wallet(uid, wallet_id)
+    if not wallet:
+        return False
+
+    new_balance = float(wallet.get("balance", 0.0)) + float(amount)
+    ok = _write_wallet_balance(uid, wallet_id, new_balance)
+    if not ok:
+        return False
+
+    tx = {
+        "type": "deposit",
+        "amount": float(amount),
+        "currency": wallet.get("currency"),
+        "note": note,
+        "timestamp": int(time.time()),
+        "balance_after": new_balance
+    }
+    _add_wallet_transaction(uid, wallet_id, tx)
+    return True
