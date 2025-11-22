@@ -157,7 +157,7 @@ def withdraw(uid: str, wallet_id: str, amount: float, note: str = "") -> bool:
 def transfer(uid: str, from_wallet_id: str, to_wallet_id: str, amount: float, note: str = "") -> bool:
     """
     Transfer amount from one wallet to another for the same user.
-    Both wallets can have different currencies — this function will NOT convert currencies.
+    Both wallets can have different currencies. But, this function does not handle currency conversion. We need something separate for that.
     It will only transfer if both wallets exist and source has sufficient funds.
     The transfer will:
       - withdraw from source (and create a withdrawal tx with note)
