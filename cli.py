@@ -13,14 +13,21 @@ from wallet_service import (
 # Import the functions we created for handling authentication and wallets
 
 # Display menu
+
 def show_menu():
-    print("\n====== Firebase CLI Authentication ======")
+    print("\n====== Firebase CLI Authentication & Wallets ======")
     print("1. Register")
     print("2. Login")
     print("3. Logout")
     print("4. Check Current User")
-    print("5. Exit")
-    print("=========================================")
+    print("5. Wallets: Create")
+    print("6. Wallets: List")
+    print("7. Wallets: Show Details")
+    print("8. Wallets: Deposit")
+    print("9. Wallets: Withdraw")
+    print("10. Wallets: Transfer (between my wallets)")
+    print("11. Exit")
+    print("==================================================")
 # Prints a simple menu.
 
 # Handle user choices
