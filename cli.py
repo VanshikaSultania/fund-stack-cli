@@ -1,7 +1,16 @@
 # Purpose: Provides a text-based menu system for user interaction
+# Updated to include wallet management commands.
 
 from auth_service import register_user, login_user, logout_user, get_session
-# Import the functions we created for handling authentication
+from wallet_service import (
+    create_wallet,
+    list_wallets,
+    get_wallet,
+    deposit,
+    withdraw,
+    transfer
+)
+# Import the functions we created for handling authentication and wallets
 
 # Display menu
 def show_menu():
