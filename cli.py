@@ -1,5 +1,5 @@
 # Purpose: Provides a text-based menu system for user interaction
-# Updated to include wallet management commands.
+# Updated to hide wallet options until user logs in.
 
 from auth_service import register_user, login_user, logout_user, get_session
 from wallet_service import (
@@ -10,65 +10,167 @@ from wallet_service import (
     withdraw,
     transfer
 )
-# Import the functions we created for handling authentication and wallets
-
-# Display menu
 
 def show_menu():
-    print("\n====== Firebase CLI Authentication & Wallets ======")
-    print("1. Register")
-    print("2. Login")
-    print("3. Logout")
-    print("4. Check Current User")
-    print("5. Wallets: Create")
-    print("6. Wallets: List")
-    print("7. Wallets: Show Details")
-    print("8. Wallets: Deposit")
-    print("9. Wallets: Withdraw")
-    print("10. Wallets: Transfer (between my wallets)")
-    print("11. Exit")
-    print("==================================================")
-# Prints a simple menu.
+    session = get_session()
 
-# Handle user choices
+    print("\n====== FundStack CLI ======")
+
+    if session:
+        # Logged-in menu
+        print("Logged in as:", session.get("email"))
+        print("----------------------------------")
+        print("3. Logout")
+        print("4. Wallets: Create")
+        print("5. Wallets: List")
+        print("6. Wallets: Show Details")
+        print("7. Wallets: Deposit")
+        print("8. Wallets: Withdraw")
+        print("9. Wallets: Transfer")
+        print("10. Exit")
+    else:
+        # Logged-out menu
+        print("1. Register")
+        print("2. Login")
+        print("3. Exit")
+
+    print("==============================")
+
+
+def require_login_session():
+    session = get_session()
+    if not session:
+        print("⚠ You must login first to access wallet features.")
+        return None
+    return session
+
+
 def handle_user_choice():
-    while True: # We run an infinite loop until user selects Exit
-        show_menu() # Show the menu options
-        choice = input("Select an option (1-5): ") # Get user input
+    while True:
+        show_menu()
+        session = get_session()
 
-        if choice == "1": # Option 1 — Register
-            print("\n--- Registration ---")
-            name = input("Full Name: ")
-            age = input("Age: ")
-            phone = input("Phone Number: ")
-            pan = input("PAN: ")
-            # Collect additional profile info
+        if session:
+            # Logged-in mode options
+            choice = input("Select an option (3-10): ").strip()
 
-            email = input("Email: ")
-            pw = input("Password: ")
-            # Collects Auth info
+            if choice == "3":
+                logout_user()
 
-            register_user(email, pw, name, age, phone, pan) # Calls register_user() to store both Auth and Database data
+            elif choice == "4":
+                # Create wallet
+                uid = session["localId"]
+                name = input("Wallet name: ").strip()
+                currency = input("Currency (INR/USD/etc): ").strip().upper() or "INR"
+                initial = input("Initial balance (optional): ").strip()
+                try:
+                    initial_val = float(initial) if initial else 0.0
+                except:
+                    print("❌ Invalid initial balance.")
+                    continue
 
-        elif choice == "2": # Option 2 — Login
-            print("\n--- Login ---")
-            email = input("Email: ")
-            pw = input("Password: ")
-            login_user(email, pw) # Calls login_user() to authenticate and create a session
+                wid = create_wallet(uid, name, currency, initial_val)
+                print("✔ Wallet created:", wid if wid else "❌ Failed")
 
-        elif choice == "3": # Option 3 — Logout
-            logout_user() # Calls logout_user() to clear the session
- 
-        elif choice == "4": # Option 4 — Check Current User
-            session = get_session() # Reads session file and checks if someone is logged in
-            if session: # If session exists
-                print("👍 Currently logged in as:", session.get("email", "Unknown"))
-            else: # If no session exists
-                print("⚠ No user logged in.")
+            elif choice == "5":
+                # List wallets
+                uid = session["localId"]
+                wallets = list_wallets(uid)
+                print("\n--- Your Wallets ---")
+                if not wallets:
+                    print("No wallets found.")
+                else:
+                    for w in wallets:
+                        print(
+                            f"- id: {w.get('id')}  name: {w.get('name')} "
+                            f"currency: {w.get('currency')}  balance: {w.get('balance')}"
+                        )
 
-        elif choice == "5": # Option 5 — Exit
-            print("Goodbye!")
-            break # Exit the loop and end the program
+            elif choice == "6":
+                # Show wallet details
+                uid = session["localId"]
+                wid = input("Wallet id: ").strip()
+                w = get_wallet(uid, wid)
+                if not w:
+                    print("❌ Wallet not found.")
+                else:
+                    print("\n--- Wallet Details ---")
+                    for k, v in w.items():
+                        print(f"{k}: {v}")
 
-        else: # Invalid input
-            print("❌ Invalid option. Try again.")
+            elif choice == "7":
+                # Deposit
+                uid = session["localId"]
+                wid = input("Wallet id: ").strip()
+                amt = input("Amount: ").strip()
+                try:
+                    amt_val = float(amt)
+                except:
+                    print("❌ Invalid amount.")
+                    continue
+                note = input("Note: ")
+                ok = deposit(uid, wid, amt_val, note)
+                print("✔ Deposit successful." if ok else "❌ Failed.")
+
+            elif choice == "8":
+                # Withdraw
+                uid = session["localId"]
+                wid = input("Wallet id: ").strip()
+                amt = input("Amount: ").strip()
+                try:
+                    amt_val = float(amt)
+                except:
+                    print("❌ Invalid amount.")
+                    continue
+                note = input("Note: ")
+                ok = withdraw(uid, wid, amt_val, note)
+                print("✔ Withdrawal successful." if ok else "❌ Failed.")
+
+            elif choice == "9":
+                # Transfer
+                uid = session["localId"]
+                from_w = input("From wallet id: ").strip()
+                to_w = input("To wallet id: ").strip()
+                amt = input("Amount: ").strip()
+                try:
+                    amt_val = float(amt)
+                except:
+                    print("❌ Invalid amount.")
+                    continue
+                note = input("Note: ")
+                ok = transfer(uid, from_w, to_w, amt_val, note)
+                print("✔ Transfer successful." if ok else "❌ Failed.")
+
+            elif choice == "10":
+                print("Goodbye!")
+                break
+
+            else:
+                print("❌ Invalid option.")
+
+        else:
+            # Logged-out mode options
+            choice = input("Select an option (1-3): ").strip()
+
+            if choice == "1":
+                print("\n--- Registration ---")
+                name = input("Full Name: ")
+                age = input("Age: ")
+                phone = input("Phone Number: ")
+                pan = input("PAN: ")
+                email = input("Email: ")
+                pw = input("Password: ")
+                register_user(email, pw, name, age, phone, pan)
+
+            elif choice == "2":
+                print("\n--- Login ---")
+                email = input("Email: ")
+                pw = input("Password: ")
+                login_user(email, pw)
+
+            elif choice == "3":
+                print("Goodbye!")
+                break
+
+            else:
+                print("❌ Invalid option.")
