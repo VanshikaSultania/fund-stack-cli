@@ -1,67 +1,155 @@
-# Purpose: Provides a text-based menu system for user interaction
-# Updated to hide wallet options until user logs in.
-
+import re
 from auth_service import register_user, login_user, logout_user, get_session
 from wallet_service import (
-    create_wallet,
-    list_wallets,
-    get_wallet,
-    deposit,
-    withdraw,
-    transfer
+    create_wallet, list_wallets, get_wallet,
+    deposit, withdraw, transfer
 )
 
+# --------------------------------------------------------------------
+# VALIDATION HELPERS
+# --------------------------------------------------------------------
+
+def input_name():
+    """Accepts only alphabets and spaces, minimum length 2."""
+    while True:
+        name = input("Full Name: ").strip()
+        if re.match(r"^[A-Za-z ]{2,}$", name):
+            return name
+        print("❌ Invalid name. Use only letters and spaces (min. 2 characters). Try again.")
+
+def input_age():
+    """Age must be a valid number between 16 and 120."""
+    while True:
+        age = input("Age: ").strip()
+        if age.isdigit() and 16 <= int(age) <= 120:
+            return age
+        print("❌ Invalid age. Enter a number between 16 and 120.")
+
+def input_phone():
+    """Phone must be numeric and at least 10 digits."""
+    while True:
+        phone = input("Phone Number: ").strip()
+        if phone.isdigit() and len(phone) >= 10:
+            return phone
+        print("❌ Invalid phone number. Must be numeric and at least 10 digits.")
+
+def input_pan():
+    """PAN format: ABCDE1234F"""
+    while True:
+        pan = input("PAN: ").strip().upper()
+        if re.match(r"^[A-Z]{5}[0-9]{4}[A-Z]$", pan):
+            return pan
+        print("❌ Invalid PAN format. Expected format: ABCDE1234F")
+
+def input_email():
+    """Basic email validator."""
+    while True:
+        email = input("Email: ").strip()
+        if "@" in email and "." in email:
+            return email
+        print("❌ Invalid email format. Try again.")
+
+def input_password():
+    """Firebase requires at least 6 characters."""
+    while True:
+        pw = input("Password (min 6 characters): ").strip()
+        if len(pw) >= 6:
+            return pw
+        print("❌ Password too short. Try again.")
+
+# --------------------------------------------------------------------
+# MENU DISPLAY
+# --------------------------------------------------------------------
+
 def show_menu():
+    """Menu changes depending on whether user is logged in."""
     session = get_session()
 
-    print("\n====== FundStack CLI ======")
+    print("\n========== FUNDSTACK CLI ==========")
 
     if session:
-        # Logged-in menu
-        print("Logged in as:", session.get("email"))
-        print("----------------------------------")
+        print(f"Logged in as → {session.get('email')}")
+        print("-----------------------------------")
         print("3. Logout")
-        print("4. Wallets: Create")
-        print("5. Wallets: List")
-        print("6. Wallets: Show Details")
-        print("7. Wallets: Deposit")
-        print("8. Wallets: Withdraw")
-        print("9. Wallets: Transfer")
+        print("4. Wallets → Create")
+        print("5. Wallets → List")
+        print("6. Wallets → Show Details")
+        print("7. Wallets → Deposit Money")
+        print("8. Wallets → Withdraw Money")
+        print("9. Wallets → Transfer")
         print("10. Exit")
     else:
-        # Logged-out menu
         print("1. Register")
         print("2. Login")
         print("3. Exit")
 
-    print("==============================")
-
+    print("===================================")
 
 def require_login_session():
+    """Ensures user is logged in before wallet operations."""
     session = get_session()
     if not session:
         print("⚠ You must login first to access wallet features.")
         return None
     return session
 
+# --------------------------------------------------------------------
+# MAIN HANDLER
+# --------------------------------------------------------------------
 
 def handle_user_choice():
+    """Main interactive loop."""
     while True:
         show_menu()
         session = get_session()
 
-        if session:
-            # Logged-in mode options
-            choice = input("Select an option (3-10): ").strip()
+        # --------------------------------------------------
+        # NOT LOGGED IN MODE
+        # --------------------------------------------------
+        if not session:
+            choice = input("Select option (1-3): ").strip()
 
+            if choice == "1":
+                print("\n--- Secure Registration ---")
+                name = input_name()
+                age = input_age()
+                phone = input_phone()
+                pan = input_pan()
+                email = input_email()
+                pw = input_password()
+
+                register_user(email, pw, name, age, phone, pan)
+
+            elif choice == "2":
+                print("\n--- Login ---")
+                email = input("Email: ").strip()
+                pw = input("Password: ").strip()
+                login_user(email, pw)
+
+            elif choice == "3":
+                print("👋 Goodbye!")
+                break
+
+            else:
+                print("❌ Invalid option. Try again.")
+                continue
+
+        # --------------------------------------------------
+        # LOGGED IN MODE
+        # --------------------------------------------------
+        else:
+            choice = input("Select option (3-10): ").strip()
+            uid = session["localId"]
+
+            # Logout
             if choice == "3":
                 logout_user()
 
+            # Create wallet
             elif choice == "4":
-                # Create wallet
-                uid = session["localId"]
-                name = input("Wallet name: ").strip()
-                currency = input("Currency (INR/USD/etc): ").strip().upper() or "INR"
+                print("\n--- Create Wallet ---")
+                name = input("Wallet name (e.g., Savings): ").strip()
+                currency = input("Currency (INR/USD/EUR): ").strip().upper() or "INR"
                 initial = input("Initial balance (optional): ").strip()
                 try:
                     initial_val = float(initial) if initial else 0.0
@@ -72,24 +160,19 @@ def handle_user_choice():
                 wid = create_wallet(uid, name, currency, initial_val)
                 print("✔ Wallet created:", wid if wid else "❌ Failed")
 
+            # List wallets
             elif choice == "5":
-                # List wallets
-                uid = session["localId"]
-                wallets = list_wallets(uid)
                 print("\n--- Your Wallets ---")
+                wallets = list_wallets(uid)
                 if not wallets:
-                    print("No wallets found.")
+                    print("⚠ No wallets found.")
                 else:
                     for w in wallets:
-                        print(
-                            f"- id: {w.get('id')}  name: {w.get('name')} "
-                            f"currency: {w.get('currency')}  balance: {w.get('balance')}"
-                        )
+                        print(f"💰 {w['name']} ({w['currency']}): {w['balance']}   [ID: {w['id']}]")
 
+            # Wallet details
             elif choice == "6":
-                # Show wallet details
-                uid = session["localId"]
-                wid = input("Wallet id: ").strip()
+                wid = input("Enter wallet ID: ").strip()
                 w = get_wallet(uid, wid)
                 if not w:
                     print("❌ Wallet not found.")
@@ -98,82 +181,59 @@ def handle_user_choice():
                     for k, v in w.items():
                         print(f"{k}: {v}")
 
+            # Deposit
             elif choice == "7":
-                # Deposit
-                uid = session["localId"]
-                wid = input("Wallet id: ").strip()
+                wid = input("Wallet ID: ").strip()
                 amt = input("Amount: ").strip()
+                cat = input("Category (e.g., Salary, Refund): ").strip()
+                note = input("Note: ").strip()
+
                 try:
                     amt_val = float(amt)
                 except:
                     print("❌ Invalid amount.")
                     continue
-                note = input("Note: ")
-                category = input("Category (optional): ").strip() or "General"
-                ok = deposit(uid, wid, amt_val, note, category)
+
+                ok = deposit(uid, wid, amt_val, note, cat)
                 print("✔ Deposit successful." if ok else "❌ Failed.")
 
+            # Withdraw
             elif choice == "8":
-                # Withdraw
-                uid = session["localId"]
-                wid = input("Wallet id: ").strip()
+                wid = input("Wallet ID: ").strip()
                 amt = input("Amount: ").strip()
+                cat = input("Category (e.g., Food, Shopping): ").strip()
+                note = input("Note: ").strip()
+
                 try:
                     amt_val = float(amt)
                 except:
                     print("❌ Invalid amount.")
                     continue
-                note = input("Note: ")
-                category = input("Category (optional): ").strip() or "General"
-                ok = withdraw(uid, wid, amt_val, note, category)
+
+                ok = withdraw(uid, wid, amt_val, note, cat)
                 print("✔ Withdrawal successful." if ok else "❌ Failed.")
 
+            # Transfer
             elif choice == "9":
-                # Transfer
-                uid = session["localId"]
-                from_w = input("From wallet id: ").strip()
-                to_w = input("To wallet id: ").strip()
+                src = input("From wallet ID: ").strip()
+                dst = input("To wallet ID: ").strip()
                 amt = input("Amount: ").strip()
+                cat = input("Category (Optional): ").strip()
+                note = input("Note: ").strip()
+
                 try:
                     amt_val = float(amt)
                 except:
                     print("❌ Invalid amount.")
                     continue
-                note = input("Note: ")
-                category = input("Category (optional): ").strip() or "Transfer"
-                ok = transfer(uid, from_w, to_w, amt_val, note, category)
-                print("✔ Transfer successful." if ok else "❌ Failed.")
+
+                ok = transfer(uid, src, dst, amt_val, note, cat)
+                print("✔ Transfer complete." if ok else "❌ Transfer failed.")
 
             elif choice == "10":
-                print("Goodbye!")
+                print("👋 Goodbye!")
                 break
 
             else:
                 print("❌ Invalid option.")
-
-        else:
-            # Logged-out mode options
-            choice = input("Select an option (1-3): ").strip()
-
-            if choice == "1":
-                print("\n--- Registration ---")
-                name = input("Full Name: ")
-                age = input("Age: ")
-                phone = input("Phone Number: ")
-                pan = input("PAN: ")
-                email = input("Email: ")
-                pw = input("Password: ")
-                register_user(email, pw, name, age, phone, pan)
-
-            elif choice == "2":
-                print("\n--- Login ---")
-                email = input("Email: ")
-                pw = input("Password: ")
-                login_user(email, pw)
-
-            elif choice == "3":
-                print("Goodbye!")
-                break
-
-            else:
-                print("❌ Invalid option.")
+                continue
