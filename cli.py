@@ -109,7 +109,8 @@ def handle_user_choice():
                     print("❌ Invalid amount.")
                     continue
                 note = input("Note: ")
-                ok = deposit(uid, wid, amt_val, note)
+                category = input("Category (optional): ").strip() or "General"
+                ok = deposit(uid, wid, amt_val, note, category)
                 print("✔ Deposit successful." if ok else "❌ Failed.")
 
             elif choice == "8":
@@ -123,7 +124,8 @@ def handle_user_choice():
                     print("❌ Invalid amount.")
                     continue
                 note = input("Note: ")
-                ok = withdraw(uid, wid, amt_val, note)
+                category = input("Category (optional): ").strip() or "General"
+                ok = withdraw(uid, wid, amt_val, note, category)
                 print("✔ Withdrawal successful." if ok else "❌ Failed.")
 
             elif choice == "9":
@@ -138,7 +140,8 @@ def handle_user_choice():
                     print("❌ Invalid amount.")
                     continue
                 note = input("Note: ")
-                ok = transfer(uid, from_w, to_w, amt_val, note)
+                category = input("Category (optional): ").strip() or "Transfer"
+                ok = transfer(uid, from_w, to_w, amt_val, note, category)
                 print("✔ Transfer successful." if ok else "❌ Failed.")
 
             elif choice == "10":
