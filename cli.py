@@ -1,4 +1,5 @@
 import re
+import getpass
 from auth_service import register_user, login_user, logout_user, get_session
 from wallet_service import (
     create_wallet, list_wallets, get_wallet,
@@ -50,9 +51,9 @@ def input_email():
         print("❌ Invalid email format. Try again.")
 
 def input_password():
-    """Firebase requires at least 6 characters."""
+    """Password entry is hidden using getpass."""
     while True:
-        pw = input("Password (min 6 characters): ").strip()
+        pw = getpass.getpass("Password (min 6 characters): ").strip()
         if len(pw) >= 6:
             return pw
         print("❌ Password too short. Try again.")
@@ -123,7 +124,7 @@ def handle_user_choice():
             elif choice == "2":
                 print("\n--- Login ---")
                 email = input("Email: ").strip()
-                pw = input("Password: ").strip()
+                pw = getpass.getpass("Password: ").strip()
                 login_user(email, pw)
 
             elif choice == "3":
