@@ -5,10 +5,9 @@ from wallet_service import (
     create_wallet, list_wallets, get_wallet,
     deposit, withdraw, transfer
 )
-
-# --------------------------------------------------------------------
+# ------------------
 # VALIDATION HELPERS
-# --------------------------------------------------------------------
+# ------------------
 
 def input_name():
     """Accepts only alphabets and spaces, minimum length 2."""
@@ -22,7 +21,7 @@ def input_age():
     """Age must be a valid number between 16 and 120."""
     while True:
         age = input("Age: ").strip()
-        if age.isdigit() and 16 <= int(age) <= 120:
+        if age.isdigit() and 16 <= int(age) <= 100:
             return age
         print("❌ Invalid age. Enter a number between 16 and 120.")
 
