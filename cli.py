@@ -1,9 +1,12 @@
+from multiprocessing.util import info
 import re
 import getpass
 from auth_service import register_user, login_user, logout_user, get_session
+from budget_service import compute_budget_status
+from report_service import generate_report
 from wallet_service import (
     create_wallet, list_wallets, get_wallet,
-    deposit, withdraw, transfer
+    deposit, withdraw, transfer, get_all_transactions
 )
 # ------------------
 # VALIDATION HELPERS
@@ -246,7 +249,28 @@ def handle_user_choice():
                 ok = set_budget(uid, year, month, category, limit)
                 print("✔ Budget saved." if ok else "❌ Failed.")
 
-            
+            elif choice == "12":
+                from budget_service import compute_budget_status
+                year = int(input("Year: "))
+                month = int(input("Month: "))
+                txs = get_all_transactions(uid)
+                status = compute_budget_status(uid, year, month)
+                print("\n--- Budget Status ---")
+                for cat, info in status.items():
+                    print(f"{cat}: spent {info['spent']}/{info['limit']} → {info['status']}")
+
+            elif choice == "13":
+                from report_service import generate_report
+                from budget_service import compute_budget_status
+
+                year = int(input("Year: "))
+                month = int(input("Month: "))
+                txs = get_all_transactions(uid)
+                budget = compute_budget_status(uid, year, month)
+                
+                print("\nGenerating report via Gemini AI...\n")
+                result = generate_report(txs, budget, year, month)
+                print(result)
 
             else:
                 print("❌ Invalid option.")
