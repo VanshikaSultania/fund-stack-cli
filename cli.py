@@ -5,6 +5,13 @@ from wallet_service import (
     create_wallet, list_wallets, get_wallet,
     deposit, withdraw, transfer
 )
+from rich.console import Console
+from rich.table import Table
+from rich.panel import Panel
+from rich.prompt import Prompt
+from rich import box
+
+console = Console()
 # ------------------
 # VALIDATION HELPERS
 # ------------------
@@ -65,7 +72,9 @@ def show_menu():
     """Menu changes depending on whether user is logged in."""
     session = get_session()
 
-    print("\n========== FUNDSTACK CLI ==========")
+    console.print("\n[bold cyan]========================[/]")
+    console.print("[bold cyan]      FUNDSTACK CLI       [/]")
+    console.print("[bold cyan]========================[/]\n")
 
     if session:
         print(f"Logged in as → {session.get('email')}")
