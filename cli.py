@@ -78,6 +78,9 @@ def show_menu():
         print("8. Wallets → Withdraw Money")
         print("9. Wallets → Transfer")
         print("10. Exit")
+        print("11. Budget → Set Monthly Budget")
+        print("12. Budget → View Budget Status")
+        print("13. Reports → Generate Monthly Report (Gemini AI)")
     else:
         print("1. Register")
         print("2. Login")
