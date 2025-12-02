@@ -119,7 +119,7 @@ def handle_user_choice():
         # NOT LOGGED IN MODE
         # --------------------------------------------------
         if not session:
-            choice = input("Select option (1-3): ").strip()
+            choice = Prompt.ask("[bold cyan]Select an option (1-3):[/]").strip()
 
             if choice == "1":
                 print("\n--- Secure Registration ---")
@@ -150,7 +150,7 @@ def handle_user_choice():
         # LOGGED IN MODE
         # --------------------------------------------------
         else:
-            choice = input("Select option (3-10): ").strip()
+            choice = Prompt.ask("[bold cyan]Select an option (3-13):[/]").strip()
             uid = session["localId"]
 
             # Logout
@@ -243,10 +243,6 @@ def handle_user_choice():
                 print("✔ Transfer complete." if ok else "❌ Transfer failed.")
 
             elif choice == "10":
-                print("👋 Goodbye!")
-                break
-
-            elif choice == "11":
                 from budget_service import set_budget
                 year = int(input("Year (YYYY): "))
                 month = int(input("Month (1-12): "))
@@ -255,7 +251,32 @@ def handle_user_choice():
                 ok = set_budget(uid, year, month, category, limit)
                 print("✔ Budget saved." if ok else "❌ Failed.")
 
-            
+            elif choice == "11":
+                from budget_service import compute_budget_status
+                year = int(input("Year: "))
+                month = int(input("Month: "))
+                txs = get_all_transactions(uid)
+                status = compute_budget_status(uid, year, month)
+                print("\n--- Budget Status ---")
+                for cat, info in status.items():
+                    print(f"{cat}: spent {info['spent']}/{info['limit']} → {info['status']}")
+
+            elif choice == "12":
+                from report_service import generate_report
+                from budget_service import compute_budget_status
+
+                year = int(input("Year: "))
+                month = int(input("Month: "))
+                txs = get_all_transactions(uid)
+                budget = compute_budget_status(uid, year, month)
+                
+                print("\nGenerating report via Gemini AI...\n")
+                result = generate_report(txs, budget, year, month)
+                print(result)
+
+            elif choice == "13":
+                print("👋 Goodbye!")
+                break
 
             else:
                 print("❌ Invalid option.")
