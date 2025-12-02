@@ -8,6 +8,13 @@ from wallet_service import (
     create_wallet, list_wallets, get_wallet,
     deposit, withdraw, transfer, get_all_transactions
 )
+from rich.console import Console
+from rich.table import Table
+from rich.panel import Panel
+from rich.prompt import Prompt
+from rich import box
+
+console = Console()
 # ------------------
 # VALIDATION HELPERS
 # ------------------
@@ -68,26 +75,28 @@ def show_menu():
     """Menu changes depending on whether user is logged in."""
     session = get_session()
 
-    print("\n========== FUNDSTACK CLI ==========")
+    console.print("\n[bold cyan]========================[/]")
+    console.print("[bold cyan]      FUNDSTACK CLI       [/]")
+    console.print("[bold cyan]========================[/]\n")
 
     if session:
-        print(f"Logged in as → {session.get('email')}")
-        print("-----------------------------------")
-        print("3. Logout")
-        print("4. Wallets → Create")
-        print("5. Wallets → List")
-        print("6. Wallets → Show Details")
-        print("7. Wallets → Deposit Money")
-        print("8. Wallets → Withdraw Money")
-        print("9. Wallets → Transfer")
-        print("10. Exit")
-        print("11. Budget → Set Monthly Budget")
-        print("12. Budget → View Budget Status")
-        print("13. Reports → Generate Monthly Report (Gemini AI)")
+        console.print(f"[green]Logged in as → {session.get('email')}\n")
+        console.print("[bold yellow]3.[/] Logout")
+        console.print("[bold yellow]4.[/] Wallets → Wallets Create Wallet")
+        console.print("[bold yellow]5.[/] Wallets → List Wallets")
+        console.print("[bold yellow]6.[/] Wallets → Wallet Details")
+        console.print("[bold yellow]7.[/] Wallets → Deposit")
+        console.print("[bold yellow]8.[/] Wallets → Withdraw")
+        console.print("[bold yellow]9.[/] Wallets → Transfer")
+        console.print("[bold yellow]10.[/] Budget → Set Monthly Budget")
+        console.print("[bold yellow]11.[/] Budget → View Budget Status")
+        console.print("[bold yellow]12.[/] Reports → Generate Monthly Report (Gemini AI)")
+        console.print("[bold yellow]13.[/] Exit\n")
+        
     else:
-        print("1. Register")
-        print("2. Login")
-        print("3. Exit")
+        console.print("[bold yellow]1.[/] Register")
+        console.print("[bold yellow]2.[/] Login")
+        console.print("[bold yellow]3.[/] Exit\n")
 
     print("===================================")
 
@@ -113,7 +122,7 @@ def handle_user_choice():
         # NOT LOGGED IN MODE
         # --------------------------------------------------
         if not session:
-            choice = input("Select option (1-3): ").strip()
+            choice = Prompt.ask("[bold cyan]Select an option (1-3):[/]").strip()
 
             if choice == "1":
                 print("\n--- Secure Registration ---")
@@ -144,7 +153,7 @@ def handle_user_choice():
         # LOGGED IN MODE
         # --------------------------------------------------
         else:
-            choice = input("Select option (3-10): ").strip()
+            choice = Prompt.ask("[bold cyan]Select an option (3-13):[/]").strip()
             uid = session["localId"]
 
             # Logout
@@ -237,10 +246,6 @@ def handle_user_choice():
                 print("✔ Transfer complete." if ok else "❌ Transfer failed.")
 
             elif choice == "10":
-                print("👋 Goodbye!")
-                break
-
-            elif choice == "11":
                 from budget_service import set_budget
                 year = int(input("Year (YYYY): "))
                 month = int(input("Month (1-12): "))
@@ -249,7 +254,7 @@ def handle_user_choice():
                 ok = set_budget(uid, year, month, category, limit)
                 print("✔ Budget saved." if ok else "❌ Failed.")
 
-            elif choice == "12":
+            elif choice == "11":
                 from budget_service import compute_budget_status
                 year = int(input("Year: "))
                 month = int(input("Month: "))
@@ -259,7 +264,7 @@ def handle_user_choice():
                 for cat, info in status.items():
                     print(f"{cat}: spent {info['spent']}/{info['limit']} → {info['status']}")
 
-            elif choice == "13":
+            elif choice == "12":
                 from report_service import generate_report
                 from budget_service import compute_budget_status
 
@@ -271,6 +276,10 @@ def handle_user_choice():
                 print("\nGenerating report via Gemini AI...\n")
                 result = generate_report(txs, budget, year, month)
                 print(result)
+
+            elif choice == "13":
+                print("👋 Goodbye!")
+                break
 
             else:
                 print("❌ Invalid option.")
