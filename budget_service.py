@@ -22,3 +22,11 @@ def set_budget(uid: str, year: int, month: int, category: str, limit: float):
         "updated_at": int(time.time())
     }
     return requests.put(path, json=data).status_code in (200, 204)
+
+def get_budgets(uid: str, year: int, month: int):
+    """Retrieve all budgets for a given month."""
+    path = f"{_budget_path(uid, year, month)}.json{_auth()}"
+    r = requests.get(path)
+    if r.status_code != 200:
+        return {}
+    return r.json() or {}
