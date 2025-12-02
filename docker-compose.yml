@@ -1,0 +1,11 @@
+version: '3.8'
+
+services:
+  fund-stack-cli:
+    build: .
+    image: fund-stack-cli
+    container_name: fund-stack-cli
+    stdin_open: true # docker run -i
+    tty: true # docker run -t
+    volumes:
+      - ./session.json:/app/session.json
