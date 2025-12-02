@@ -12,3 +12,13 @@ def _auth():
 
 def _budget_path(uid, year, month):
     return f"{DATABASE_URL.rstrip('/')}/users/{uid}/budgets/{year}/{month}"
+
+def set_budget(uid: str, year: int, month: int, category: str, limit: float):
+    """Set or update monthly budget for a category."""
+    path = f"{_budget_path(uid, year, month)}/{category}.json{_auth()}"
+    data = {
+        "category": category,
+        "limit": limit,
+        "updated_at": int(time.time())
+    }
+    return requests.put(path, json=data).status_code in (200, 204)
