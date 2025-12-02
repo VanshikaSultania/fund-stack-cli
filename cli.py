@@ -237,6 +237,17 @@ def handle_user_choice():
                 print("👋 Goodbye!")
                 break
 
+            elif choice == "11":
+                from budget_service import set_budget
+                year = int(input("Year (YYYY): "))
+                month = int(input("Month (1-12): "))
+                category = input("Category: ").strip()
+                limit = float(input("Monthly limit: "))
+                ok = set_budget(uid, year, month, category, limit)
+                print("✔ Budget saved." if ok else "❌ Failed.")
+
+            
+
             else:
                 print("❌ Invalid option.")
                 continue
