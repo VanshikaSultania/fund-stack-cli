@@ -1,9 +1,12 @@
+from multiprocessing.util import info
 import re
 import getpass
 from auth_service import register_user, login_user, logout_user, get_session
+from budget_service import compute_budget_status
+from report_service import generate_report
 from wallet_service import (
     create_wallet, list_wallets, get_wallet,
-    deposit, withdraw, transfer
+    deposit, withdraw, transfer, get_all_transactions
 )
 from rich.console import Console
 from rich.table import Table
