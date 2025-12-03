@@ -196,3 +196,26 @@ def transfer(uid: str, from_wallet_id: str, to_wallet_id: str, amount: float, no
     _log_to_csv(uid, to_wallet_id, tx_in)    # NEW
 
     return True
+
+def get_all_transactions(uid: str):
+    """
+    Fetch all transactions across all wallets for a user.
+    Returns a flat list of transaction dictionaries.
+    """
+    all_txs = []
+    base = f"{DATABASE_URL.rstrip('/')}/users/{uid}/wallets"
+
+    r = requests.get(f"{base}.json{_auth_query()}")
+    if r.status_code != 200:
+        return []
+
+    wallets = r.json() or {}
+
+    for wallet_id, wdata in wallets.items():
+        transactions = wdata.get("transactions", {})
+        for txid, tx in transactions.items():
+            tx["_wallet_id"] = wallet_id
+            tx["_txid"] = txid
+            all_txs.append(tx)
+
+    return all_txs
