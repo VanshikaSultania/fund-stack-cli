@@ -1,75 +1,53 @@
-import requests
-import time
+#========================
+#FILE: budget_service.py
+#========================
+
+import requests, time
 from firebase_config import DATABASE_URL
 from auth_service import get_session
 from wallet_service import get_all_transactions
+from rich.console import Console
+console = Console()
 
 def _auth():
     session = get_session()
-    if not session:
-        return ""
+    if not session: return ""
     token = session.get("idToken")
     return f"?auth={token}" if token else ""
 
 def _budget_path(uid, year, month):
-    return f"{DATABASE_URL.rstrip('/')}/users/{uid}/budgets/{year}/{month}"
+    return f"{DATABASE_URL}/users/{uid}/budgets/{year}/{month}"
 
-def set_budget(uid: str, year: int, month: int, category: str, limit: float):
-    """Create/update a monthly budget category."""
-    path = f"{_budget_path(uid, year, month)}/{category}.json{_auth()}"
-    data = {
-        "category": category,
-        "limit": limit,
-        "updated_at": int(time.time())
-    }
-    return requests.put(path, json=data).status_code in (200, 204)
+def set_budget(uid, year, month, category, limit):
+    data = {"category": category, "limit": limit, "updated_at": int(time.time())}
+    r = requests.put(f"{_budget_path(uid,year,month)}/{category}.json{_auth()}", json=data)
+    return r.status_code in (200,204)
 
-def get_budgets(uid: str, year: int, month: int):
-    """Retrieve all budgets for the given month."""
-    path = f"{_budget_path(uid, year, month)}.json{_auth()}"
-    r = requests.get(path)
-    if r.status_code != 200:
-        return {}
+def get_budgets(uid, year, month):
+    r = requests.get(f"{_budget_path(uid,year,month)}.json{_auth()}")
+    if r.status_code != 200: return {}
     return r.json() or {}
 
-def compute_budget_status(uid: str, year: int, month: int):
-    """Analyze budgets vs actual expenses."""
+def compute_budget_status(uid, year, month):
     budgets = get_budgets(uid, year, month)
     txs = get_all_transactions(uid)
 
     spending = {}
-
     for tx in txs:
-        tx_type = tx.get("type")
-        if tx_type not in ["withdrawal", "expense", "transfer_out"]:
-            continue
+        t = tx.get("type")
+        if t not in ["withdrawal","expense","transfer_out"]: continue
+        cat = tx.get("category","General")
+        amt = float(tx.get("amount",0))
+        spending[cat] = spending.get(cat,0) + amt
 
-        # Use date if exists; fallback on timestamp (not ideal but works)
-        if "date" in tx:
-            try:
-                yr = int(tx["date"].split("-")[0])
-                mo = int(tx["date"].split("-")[1])
-            except:
-                continue
-            if yr != year or mo != month:
-                continue
-
-        category = tx.get("category", "General")
-        amount = float(tx.get("amount", 0))
-        spending[category] = spending.get(category, 0) + amount
-
-    # Build final comparison
     result = {}
-
-    for category, bdata in budgets.items():
-        limit = bdata["limit"]
-        spent = spending.get(category, 0)
-        remaining = limit - spent
-        result[category] = {
+    for cat, b in budgets.items():
+        limit = b["limit"]
+        spent = spending.get(cat,0)
+        result[cat] = {
             "limit": limit,
             "spent": spent,
-            "remaining": remaining,
-            "status": "OK" if remaining >= 0 else "OVERSPENT"
+            "remaining": limit - spent,
+            "status": "OK" if limit-spent >= 0 else "OVERSPENT"
         }
-
     return result
