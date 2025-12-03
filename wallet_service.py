@@ -1,221 +1,152 @@
-"""
-wallet_service.py
-Updated: 
-- Now logs every wallet transaction to a CSV file per user.
-- CSV format: timestamp, wallet_id, type, amount, currency, category, note, balance_after, from_wallet, to_wallet
-"""
+#========================
+#FILE: wallet_service.py
+#========================
 
-import uuid
-import time
-import csv
-import os
-import requests
-from typing import Optional, Dict, List
+import uuid, time, csv, os, requests
+from rich.progress import Progress
+from rich.console import Console
 from firebase_config import DATABASE_URL
 from auth_service import get_session
 
+console = Console()
+
+
 def _auth_query():
     session = get_session()
-    if not session:
-        return ""
+    if not session: return ""
     token = session.get("idToken")
     return f"?auth={token}" if token else ""
 
 
-def _wallet_base_path(uid: str) -> str:
-    return f"{DATABASE_URL.rstrip('/')}/users/{uid}/wallets"
+def _wallet_base(uid): return f"{DATABASE_URL}/users/{uid}/wallets"
 
 
-### NEW: CSV LOGGING FUNCTION
-def _log_to_csv(uid: str, wallet_id: str, tx: Dict):
+def _log_csv(uid, wallet_id, tx):
     filename = f"transactions_{uid}.csv"
-    file_exists = os.path.exists(filename)
+    exists = os.path.exists(filename)
 
-    with open(filename, "a", newline="") as file:
-        writer = csv.writer(file)
-
-        # Write header once
-        if not file_exists:
-            writer.writerow([
-                "timestamp", "wallet_id", "type",
-                "amount", "currency", "category", 
-                "note", "balance_after", "from_wallet", "to_wallet"
-            ])
-
-        writer.writerow([
-            tx.get("timestamp"),
-            wallet_id,
-            tx.get("type"),
-            tx.get("amount"),
-            tx.get("currency"),
-            tx.get("category", ""),   # may not exist before
-            tx.get("note", ""),
-            tx.get("balance_after", ""),
-            tx.get("from_wallet", ""),
-            tx.get("to_wallet", "")
+    with open(filename, "a", newline="") as f:
+        w = csv.writer(f)
+        if not exists:
+            w.writerow(["timestamp", "wallet_id", "type", "amount", "currency", "category", "note", "balance_after", "from_wallet", "to_wallet"])
+        w.writerow([
+            tx.get("timestamp"), wallet_id, tx.get("type"), tx.get("amount"), tx.get("currency"),
+            tx.get("category", ""), tx.get("note", ""), tx.get("balance_after", ""),
+            tx.get("from_wallet", ""), tx.get("to_wallet", "")
         ])
 
 
-def create_wallet(uid: str, name: str, currency: str, initial_balance: float = 0.0) -> Optional[str]:
+def create_wallet(uid, name, currency, initial):
     wallet_id = uuid.uuid4().hex
     wallet = {
         "id": wallet_id,
         "name": name,
-        "currency": currency.upper(),
-        "balance": float(initial_balance),
+        "currency": currency,
+        "balance": float(initial),
         "created_at": int(time.time())
     }
-    path = f"{_wallet_base_path(uid)}/{wallet_id}.json{_auth_query()}"
-    r = requests.put(path, json=wallet)
+    r = requests.put(f"{_wallet_base(uid)}/{wallet_id}.json{_auth_query()}", json=wallet)
     return wallet_id if r.status_code in (200, 204) else None
 
 
-def list_wallets(uid: str) -> List[Dict]:
-    path = f"{_wallet_base_path(uid)}.json{_auth_query()}"
-    r = requests.get(path)
-    if r.status_code != 200:
-        return []
-    return list((r.json() or {}).values())
+def list_wallets(uid):
+    r = requests.get(f"{_wallet_base(uid)}.json{_auth_query()}")
+    if r.status_code != 200: return []
+    data = r.json() or {}
+    return list(data.values())
 
 
-def get_wallet(uid: str, wallet_id: str) -> Optional[Dict]:
-    path = f"{_wallet_base_path(uid)}/{wallet_id}.json{_auth_query()}"
-    r = requests.get(path)
+def get_wallet(uid, wid):
+    r = requests.get(f"{_wallet_base(uid)}/{wid}.json{_auth_query()}")
     return r.json() if r.status_code == 200 else None
 
 
-def _write_wallet_balance(uid: str, wallet_id: str, new_balance: float) -> bool:
-    path = f"{_wallet_base_path(uid)}/{wallet_id}.json{_auth_query()}"
-    return requests.patch(path, json={"balance": new_balance}).status_code in (200, 204)
+def _update_balance(uid, wid, bal):
+    r = requests.patch(f"{_wallet_base(uid)}/{wid}.json{_auth_query()}", json={"balance": bal})
+    return r.status_code in (200, 204)
 
 
-def _add_wallet_transaction(uid: str, wallet_id: str, tx: Dict) -> Optional[str]:
+def _record_tx(uid, wid, tx):
     txid = uuid.uuid4().hex
-    path = f"{DATABASE_URL.rstrip('/')}/users/{uid}/wallets/{wallet_id}/transactions/{txid}.json{_auth_query()}"
-    r = requests.put(path, json=tx)
+    r = requests.put(f"{_wallet_base(uid)}/{wid}/transactions/{txid}.json{_auth_query()}", json=tx)
     return txid if r.status_code in (200, 204) else None
 
 
-# -------------------------
-# UPDATED TRANSACTION METHODS
-# -------------------------
+def deposit(uid, wid, amt, note, cat):
+    with Progress() as p:
+        task = p.add_task("[green]Processing deposit...", total=100)
+        for _ in range(20): p.update(task, advance=5); time.sleep(0.02)
 
-def deposit(uid: str, wallet_id: str, amount: float, note: str = "", category: str = "General") -> bool:
-    if amount <= 0:
-        return False
+    w = get_wallet(uid, wid)
+    new_bal = w["balance"] + amt
+    _update_balance(uid, wid, new_bal)
 
-    wallet = get_wallet(uid, wallet_id)
-    if not wallet:
-        return False
+    tx = {"type": "deposit", "amount": amt, "currency": w["currency"], "note": note,
+          "category": cat, "timestamp": int(time.time()), "balance_after": new_bal}
 
-    new_balance = float(wallet["balance"]) + amount
-    if not _write_wallet_balance(uid, wallet_id, new_balance):
-        return False
-
-    tx = {
-        "type": "deposit",
-        "amount": amount,
-        "currency": wallet["currency"],
-        "note": note,
-        "category": category,  # NEW
-        "timestamp": int(time.time()),
-        "balance_after": new_balance
-    }
-
-    _add_wallet_transaction(uid, wallet_id, tx)
-    _log_to_csv(uid, wallet_id, tx)  # NEW
+    _record_tx(uid, wid, tx)
+    _log_csv(uid, wid, tx)
     return True
 
 
-def withdraw(uid: str, wallet_id: str, amount: float, note: str = "", category: str = "General") -> bool:
-    wallet = get_wallet(uid, wallet_id)
-    if not wallet or amount <= 0 or amount > float(wallet["balance"]):
-        return False
+def withdraw(uid, wid, amt, note, cat):
+    with Progress() as p:
+        task = p.add_task("[yellow]Processing withdrawal...", total=100)
+        for _ in range(20): p.update(task, advance=5); time.sleep(0.02)
 
-    new_balance = float(wallet["balance"]) - amount
-    if not _write_wallet_balance(uid, wallet_id, new_balance):
-        return False
+    w = get_wallet(uid, wid)
+    if amt > w["balance"]: return False
 
-    tx = {
-        "type": "withdrawal",
-        "amount": amount,
-        "currency": wallet["currency"],
-        "note": note,
-        "category": category,  # NEW
-        "timestamp": int(time.time()),
-        "balance_after": new_balance
-    }
+    new_bal = w["balance"] - amt
+    _update_balance(uid, wid, new_bal)
 
-    _add_wallet_transaction(uid, wallet_id, tx)
-    _log_to_csv(uid, wallet_id, tx)  # NEW
+    tx = {"type": "withdrawal", "amount": amt, "currency": w["currency"], "note": note,
+          "category": cat, "timestamp": int(time.time()), "balance_after": new_bal}
+
+    _record_tx(uid, wid, tx)
+    _log_csv(uid, wid, tx)
     return True
 
 
-def transfer(uid: str, from_wallet_id: str, to_wallet_id: str, amount: float, note: str = "", category: str = "Transfer") -> bool:
-    src = get_wallet(uid, from_wallet_id)
-    dst = get_wallet(uid, to_wallet_id)
+def transfer(uid, src, dst, amt, note, cat):
+    with Progress() as p:
+        task = p.add_task("[magenta]Processing transfer...", total=100)
+        for _ in range(25): p.update(task, advance=4); time.sleep(0.02)
 
-    if not src or not dst or amount <= 0 or amount > float(src["balance"]):
-        return False
+    s = get_wallet(uid, src)
+    d = get_wallet(uid, dst)
 
-    # Update balances
-    new_src_balance = float(src["balance"]) - amount
-    new_dst_balance = float(dst["balance"]) + amount
+    if amt > s["balance"]: return False
 
-    if not (_write_wallet_balance(uid, from_wallet_id, new_src_balance) and _write_wallet_balance(uid, to_wallet_id, new_dst_balance)):
-        return False
+    new_s = s["balance"] - amt
+    new_d = d["balance"] + amt
 
-    timestamp = int(time.time())
+    _update_balance(uid, src, new_s)
+    _update_balance(uid, dst, new_d)
 
-    tx_out = {
-        "type": "transfer_out",
-        "amount": amount,
-        "currency": src["currency"],
-        "note": note,
-        "category": category,  # NEW
-        "timestamp": timestamp,
-        "balance_after": new_src_balance,
-        "to_wallet": to_wallet_id
-    }
+    ts = int(time.time())
 
-    tx_in = {
-        "type": "transfer_in",
-        "amount": amount,
-        "currency": dst["currency"],
-        "note": note,
-        "category": category,  # SAME category
-        "timestamp": timestamp,
-        "balance_after": new_dst_balance,
-        "from_wallet": from_wallet_id
-    }
+    tx_out = {"type": "transfer_out", "amount": amt, "currency": s["currency"], "note": note,
+              "category": cat, "timestamp": ts, "balance_after": new_s, "to_wallet": dst}
+    tx_in  = {"type": "transfer_in",  "amount": amt, "currency": d["currency"], "note": note,
+              "category": cat, "timestamp": ts, "balance_after": new_d, "from_wallet": src}
 
-    _add_wallet_transaction(uid, from_wallet_id, tx_out)
-    _add_wallet_transaction(uid, to_wallet_id, tx_in)
-
-    _log_to_csv(uid, from_wallet_id, tx_out)  # NEW
-    _log_to_csv(uid, to_wallet_id, tx_in)    # NEW
-
+    _record_tx(uid, src, tx_out)
+    _record_tx(uid, dst, tx_in)
+    _log_csv(uid, src, tx_out)
+    _log_csv(uid, dst, tx_in)
     return True
 
-def get_all_transactions(uid: str):
-    """
-    Fetch all transactions across all wallets for a user.
-    Returns a flat list of transaction dictionaries.
-    """
-    all_txs = []
-    base = f"{DATABASE_URL.rstrip('/')}/users/{uid}/wallets"
 
-    r = requests.get(f"{base}.json{_auth_query()}")
-    if r.status_code != 200:
-        return []
+def get_all_transactions(uid):
+    r = requests.get(f"{_wallet_base(uid)}.json{_auth_query()}")
+    if r.status_code != 200: return []
 
-    wallets = r.json() or {}
-
-    for wallet_id, wdata in wallets.items():
-        transactions = wdata.get("transactions", {})
-        for txid, tx in transactions.items():
-            tx["_wallet_id"] = wallet_id
+    data = r.json() or {}
+    txs = []
+    for wid, wdata in data.items():
+        for txid, tx in (wdata.get("transactions", {}) or {}).items():
+            tx["_wallet_id"] = wid
             tx["_txid"] = txid
-            all_txs.append(tx)
-
-    return all_txs
+            txs.append(tx)
+    return txs
