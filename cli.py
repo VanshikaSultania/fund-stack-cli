@@ -1,3 +1,14 @@
+"""
+CLI Interface Module.
+
+This module provides the Command Line Interface for the FundStack application.
+It handles:
+- User input collection and validation
+- Menu display and navigation
+- Integration with backend services (Auth, Wallet, Budget, Report)
+- Displaying data using Rich tables and panels
+"""
+
 from multiprocessing.util import info
 import re
 import getpass
@@ -21,7 +32,12 @@ console = Console()
 # ------------------
 
 def input_name():
-    """Accepts only alphabets and spaces, minimum length 2."""
+    """
+    Prompts user for their full name and validates it.
+    
+    Returns:
+        str: Validated name (only alphabets and spaces, min length 2).
+    """
     while True:
         name = Prompt.ask("[bold cyan]Full Name[/]").strip()
         if re.match(r"^[A-Za-z ]{2,}$", name):
@@ -29,7 +45,12 @@ def input_name():
         console.print("[bold red]❌ Invalid name.[/] Use only letters and spaces (min. 2 characters). Try again.")
 
 def input_age():
-    """Age must be a valid number between 16 and 100 (logic unchanged)."""
+    """
+    Prompts user for their age and validates it.
+
+    Returns:
+        str: Validated age (16-100).
+    """
     while True:
         age = Prompt.ask("[bold cyan]Age[/]").strip()
         if age.isdigit() and 16 <= int(age) <= 100:
@@ -37,7 +58,12 @@ def input_age():
         console.print("[bold red]❌ Invalid age.[/] Enter a number between 16 and 120.")
 
 def input_phone():
-    """Phone must be numeric and at least 10 digits."""
+    """
+    Prompts user for phone number and validates it.
+
+    Returns:
+        str: Validated phone number (numeric, >= 10 digits).
+    """
     while True:
         phone = Prompt.ask("[bold cyan]Phone Number[/]").strip()
         if phone.isdigit() and len(phone) >= 10:
@@ -45,7 +71,12 @@ def input_phone():
         console.print("[bold red]❌ Invalid phone number.[/] Must be numeric and at least 10 digits.")
 
 def input_pan():
-    """PAN format: ABCDE1234F"""
+    """
+    Prompts user for PAN number and validates format.
+
+    Returns:
+        str: Validated PAN (Format: ABCDE1234F).
+    """
     while True:
         pan = Prompt.ask("[bold cyan]PAN[/]").strip().upper()
         if re.match(r"^[A-Z]{5}[0-9]{4}[A-Z]$", pan):
@@ -53,7 +84,12 @@ def input_pan():
         console.print("[bold red]❌ Invalid PAN format.[/] Expected format: [yellow]ABCDE1234F[/]")
 
 def input_email():
-    """Basic email validator."""
+    """
+    Prompts user for email and performs basic validation.
+
+    Returns:
+        str: Validated email address.
+    """
     while True:
         email = Prompt.ask("[bold cyan]Email[/]").strip()
         if "@" in email and "." in email:
@@ -61,7 +97,12 @@ def input_email():
         console.print("[bold red]❌ Invalid email format.[/] Try again.")
 
 def input_password():
-    """Password entry is hidden using getpass."""
+    """
+    Prompts user for password (hidden input).
+
+    Returns:
+        str: Validated password (min 6 chars).
+    """
     while True:
         pw = getpass.getpass("🔒 Password (min 6 characters): ").strip()
         if len(pw) >= 6:
@@ -73,7 +114,9 @@ def input_password():
 # --------------------------------------------------------------------
 
 def show_menu():
-    """Menu changes depending on whether user is logged in."""
+    """
+    Displays the main menu options based on the user's login state.
+    """
     session = get_session()
 
     console.print("\n[bold cyan]========================[/]")
@@ -102,7 +145,12 @@ def show_menu():
 
 
 def require_login_session():
-    """Ensures user is logged in before wallet operations."""
+    """
+    Checks if a user session exists.
+
+    Returns:
+        dict or None: Session data if logged in, else None.
+    """
     session = get_session()
     if not session:
         console.print("[bold red]⚠ You must login first to access wallet features.[/]")
@@ -114,7 +162,10 @@ def require_login_session():
 # --------------------------------------------------------------------
 
 def handle_user_choice():
-    """Main interactive loop."""
+    """
+    Main application loop.
+    Handles user input and routes to appropriate service functions.
+    """
     while True:
         show_menu()
         session = get_session()
@@ -317,7 +368,8 @@ def handle_user_choice():
                 budget = compute_budget_status(uid, year, month)
                 console.print("\n[bold cyan]Generating report via Gemini AI...[/]\n")
                 result = generate_report(txs, budget, year, month)
-                console.print(Panel.fit(result, style="bold green"))
+                safe_text = result if isinstance(result, str) else str(result)
+                console.print(Panel.fit(safe_text, style="bold green"))
 
             # Exit
             elif choice == "13":

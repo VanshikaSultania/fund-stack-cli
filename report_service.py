@@ -1,32 +1,55 @@
-#========================
-#FILE: report_service.py
-#========================
-
-import requests, json
 from rich.console import Console
 from rich.spinner import Spinner
 from rich.live import Live
+import json
+
 console = Console()
 
-GEMINI_API_KEY = "AIzaSyDbRu7uUXgQUj4DeLlG3ZOg7ni0n9GpvKw"
-GEMINI_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent"
-
 def generate_report(transactions, budget_status, year, month):
+    """Generate a monthly financial report using Gemini (official google-genai client)."""
+
+    from google import genai
+    client = genai.Client(api_key="AIzaSyD1lxc2pXIQATjRr77EVhDacgo9qGinNk8")
+
+    # Clean prompt
     prompt = f"""
-You are a financial analysis AI. Create a monthly report.
-Month: {year}-{str(month).zfill(2)}
-Transactions: {json.dumps(transactions, indent=2)}
-Budgets: {json.dumps(budget_status, indent=2)}
-Include:
-- Income
-- Expenses
-- Overspending alerts
-- Insights
-- Recommendations
+Create a user-friendly monthly financial report.
+
+MONTH: {year}-{str(month).zfill(2)}
+
+### TRANSACTIONS (JSON) ###
+{json.dumps(transactions, indent=2)}
+
+### BUDGET STATUS (JSON) ###
+{json.dumps(budget_status, indent=2)}
+
+### REQUIRED OUTPUT ###
+1. Total Income
+2. Total Expenses
+3. Category-wise Spending Summary
+4. Overspending alerts
+5. Savings estimate
+6. Recommendations for next month
+
+Write in clean human-friendly language with bullet points.
 """
-    with Live(Spinner("dots","Generating AI Report..."), refresh_per_second=10):
-        r = requests.post(f"{GEMINI_URL}?key={GEMINI_API_KEY}", json={"contents":[{"parts":[{"text":prompt}]}]})
+
+    # Animated loading spinner
+    with Live(Spinner("dots", text="Generating monthly AI report..."), refresh_per_second=10):
+        try:
+            response = client.models.generate_content(
+                model="gemini-2.5-flash",
+                contents=prompt
+            )
+        except Exception as e:
+            return f"❌ Gemini API Error:\n{str(e)}"
+
+    # Safely extract response text
     try:
-        return r.json()["candidates"][0]["content"]["parts"][0]["text"]
-    except:
-        return "Error generating report."
+        result = response.text
+        if not result:
+            return "❌ Gemini returned an empty response."
+        return result
+
+    except Exception as e:
+        return f"❌ Failed to extract text from Gemini response:\n{e}"
