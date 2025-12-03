@@ -8,7 +8,7 @@ from rich.spinner import Spinner
 from rich.live import Live
 console = Console()
 
-GEMINI_API_KEY = "YOUR_GEMINI_API_KEY"
+GEMINI_API_KEY = "AIzaSyDbRu7uUXgQUj4DeLlG3ZOg7ni0n9GpvKw"
 GEMINI_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent"
 
 def generate_report(transactions, budget_status, year, month):
