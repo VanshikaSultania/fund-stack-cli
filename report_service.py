@@ -1,52 +1,32 @@
-"""
-report_service.py
-Generates monthly financial report using Gemini AI API.
-"""
+#========================
+#FILE: report_service.py
+#========================
 
-import requests
-import json
+import requests, json
+from rich.console import Console
+from rich.spinner import Spinner
+from rich.live import Live
+console = Console()
 
-GEMINI_API_KEY = "AIzaSyDzGaS9lraFz2eho80Mb8ssHP_vhmiLSj0"
+GEMINI_API_KEY = "YOUR_GEMINI_API_KEY"
 GEMINI_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent"
 
 def generate_report(transactions, budget_status, year, month):
-    """Send data to Gemini model and get a smart financial report."""
-
     prompt = f"""
-You are a financial analysis AI. Create a clean, structured monthly report.
-
-MONTH: {year}-{str(month).zfill(2)}
-
-### TRANSACTIONS ###
-{json.dumps(transactions, indent=2)}
-
-### BUDGET STATUS ###
-{json.dumps(budget_status, indent=2)}
-
-Provide:
-- Total income
-- Total expenses
-- Top spending categories
+You are a financial analysis AI. Create a monthly report.
+Month: {year}-{str(month).zfill(2)}
+Transactions: {json.dumps(transactions, indent=2)}
+Budgets: {json.dumps(budget_status, indent=2)}
+Include:
+- Income
+- Expenses
 - Overspending alerts
-- Savings insights
-- Recommendations for next month
-- Write in simple, friendly language.
+- Insights
+- Recommendations
 """
-
-    data = {
-        "contents": [{
-            "parts": [{"text": prompt}]
-        }]
-    }
-
-    r = requests.post(
-        f"{GEMINI_URL}?key={GEMINI_API_KEY}",
-        json=data
-    )
-
-    reply = r.json()
-    
+    with Live(Spinner("dots","Generating AI Report..."), refresh_per_second=10):
+        r = requests.post(f"{GEMINI_URL}?key={GEMINI_API_KEY}", json={"contents":[{"parts":[{"text":prompt}]}]})
     try:
-        return reply["candidates"][0]["content"]["parts"][0]["text"]
+        return r.json()["candidates"][0]["content"]["parts"][0]["text"]
     except:
         return "Error generating report."
